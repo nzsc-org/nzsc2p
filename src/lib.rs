@@ -1,6 +1,6 @@
 extern crate nzsc_core;
 
 mod players;
-mod two_player_game;
+mod tests;
 
-pub use two_player_game::NZSCTwoPlayerGame;
+pub mod two_player_game;
