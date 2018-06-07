@@ -64,6 +64,11 @@ impl NZSCTwoPlayerGame {
                             && a.character_streak.repeated_character == Some(character)
                         {
                             b.points += a.penalize(3);
+
+                            if b.points >= 5 {
+                                new_phase = Some(Phase::GameOver(a.points, b.points));
+                            }
+
                             Ok(())
                         } else {
                             if let Some(b_character) = b.selected_character {
@@ -79,17 +84,15 @@ impl NZSCTwoPlayerGame {
                                     a.points += headstart.0;
                                     b.points += headstart.1;
 
-                                    if WhichPlayer::PlayerB == chooser {
-                                        new_phase = Some(Phase::BoosterChoosing(
-                                            b.to_boosterless_player(b_character),
-                                            a.to_boosterless_player(character),
-                                        ));
+                                    if a.points >= 5 || b.points >= 5 {
+                                        new_phase = Some(Phase::GameOver(a.points, b.points));
                                     } else {
                                         new_phase = Some(Phase::BoosterChoosing(
                                             a.to_boosterless_player(character),
                                             b.to_boosterless_player(b_character),
                                         ));
                                     }
+
                                     Ok(())
                                 }
                             } else {
@@ -99,6 +102,11 @@ impl NZSCTwoPlayerGame {
                         }
                     } else {
                         b.points += a.penalize(4);
+
+                        if b.points >= 5 {
+                            new_phase = Some(Phase::GameOver(a.points, b.points));
+                        }
+
                         Ok(())
                     }
                 }
@@ -123,17 +131,11 @@ impl NZSCTwoPlayerGame {
                     if let Ok(booster) = Booster::from_str(&choice[..]) {
                         if a.available_boosters().contains(&booster) {
                             if let Some(b_booster) = b.selected_booster {
-                                if WhichPlayer::PlayerB == chooser {
-                                    new_phase = Some(Phase::MoveChoosing(
-                                        b.to_moveless_player(b_booster),
-                                        a.to_moveless_player(booster),
-                                    ));
-                                } else {
-                                    new_phase = Some(Phase::MoveChoosing(
-                                        a.to_moveless_player(booster),
-                                        b.to_moveless_player(b_booster),
-                                    ));
-                                }
+                                new_phase = Some(Phase::MoveChoosing(
+                                    a.to_moveless_player(booster),
+                                    b.to_moveless_player(b_booster),
+                                ));
+
                                 Ok(())
                             } else {
                                 a.selected_booster = Some(booster);
@@ -142,10 +144,20 @@ impl NZSCTwoPlayerGame {
                         } else {
                             // Booster from wrong character.
                             b.points += a.penalize(3);
+
+                            if b.points >= 5 {
+                                new_phase = Some(Phase::GameOver(a.points, b.points));
+                            }
+
                             Ok(())
                         }
                     } else {
                         b.points += a.penalize(4);
+
+                        if b.points >= 5 {
+                            new_phase = Some(Phase::GameOver(a.points, b.points));
+                        }
+
                         Ok(())
                     }
                 }
@@ -177,6 +189,16 @@ impl NZSCTwoPlayerGame {
                                 b.move_streak.add(b_move);
                                 a.selected_move = None;
                                 b.selected_move = None;
+
+                                if a.points >= 5 || b.points >= 5 {
+                                    if a.points == b.points {
+                                        a.points = 4;
+                                        b.points = 4;
+                                    } else {
+                                        new_phase = Some(Phase::GameOver(a.points, b.points));
+                                    }
+                                }
+
                                 Ok(())
                             } else {
                                 a.selected_move = Some(a_move);
@@ -185,11 +207,21 @@ impl NZSCTwoPlayerGame {
                         } else {
                             if a.destroyed_moves.contains(&a_move) {
                                 b.points += a.penalize(4);
+
+                                if b.points >= 5 {
+                                    new_phase = Some(Phase::GameOver(a.points, b.points));
+                                }
+
                                 Ok(())
                             } else if a.move_streak.times == 3
                                 && a.move_streak.repeated_move == Some(a_move)
                             {
                                 b.points += a.penalize(3);
+
+                                if b.points >= 5 {
+                                    new_phase = Some(Phase::GameOver(a.points, b.points));
+                                }
+
                                 Ok(())
                             } else {
                                 let mut booster_moves = vec![];
@@ -199,15 +231,30 @@ impl NZSCTwoPlayerGame {
 
                                 if booster_moves.contains(&a_move) {
                                     b.points += a.penalize(2);
+
+                                    if b.points >= 5 {
+                                        new_phase = Some(Phase::GameOver(a.points, b.points));
+                                    }
+
                                     Ok(())
                                 } else {
                                     b.points += a.penalize(3);
+
+                                    if b.points >= 5 {
+                                        new_phase = Some(Phase::GameOver(a.points, b.points));
+                                    }
+
                                     Ok(())
                                 }
                             }
                         }
                     } else {
                         b.points += a.penalize(4);
+
+                        if b.points >= 5 {
+                            new_phase = Some(Phase::GameOver(a.points, b.points));
+                        }
+
                         Ok(())
                     }
                 }
@@ -219,10 +266,33 @@ impl NZSCTwoPlayerGame {
             },
         };
 
-        if let Some(phase) = new_phase {
-            self.phase = phase;
+        if let Some(new_phase) = new_phase {
+            self.phase = if WhichPlayer::PlayerB == chooser {
+                new_phase.flip_a_and_b()
+            } else {
+                new_phase
+            };
         }
 
         return_val
+    }
+}
+
+impl Phase {
+    pub fn flip_a_and_b(&self) -> Self {
+        match self {
+            &Phase::CharacterChoosing(ref a, ref b) => {
+                Phase::CharacterChoosing(b.clone(), a.clone())
+            },
+            &Phase::BoosterChoosing(ref a, ref b) => {
+                Phase::BoosterChoosing(b.clone(), a.clone())
+            },
+            &Phase::MoveChoosing(ref a, ref b) => {
+                Phase::MoveChoosing(b.clone(), a.clone())
+            },
+            &Phase::GameOver(ref a, ref b) => {
+                Phase::GameOver(b.clone(), a.clone())
+            },
+        }
     }
 }
