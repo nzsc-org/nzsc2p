@@ -12,7 +12,7 @@ use nzsc_core::{
 use std::str::FromStr;
 
 pub struct NZSCTwoPlayerGame {
-    phase: Phase,
+    pub phase: Phase,
 }
 
 #[derive(Clone)]
