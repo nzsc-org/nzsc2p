@@ -3,5 +3,9 @@ name = "nzsc2p"
 version = "0.1.0"
 authors = ["Kyle Lin <kylejlin.us@gmail.com>"]
 
+description = "Two-player NZSC."
+license = "MIT"
+repository = "https://github.com/nzsc-org/nzsc2p"
+
 [dependencies]
 nzsc_core = "0.2.0"
