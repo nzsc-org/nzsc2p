@@ -121,21 +121,27 @@ impl NZSCTwoPlayerGame {
                     Err(())
                 } else {
                     if let Ok(booster) = Booster::from_str(&choice[..]) {
-                        if let Some(b_booster) = b.selected_booster {
-                            if WhichPlayer::PlayerB == chooser {
-                                new_phase = Some(Phase::MoveChoosing(
-                                    b.to_moveless_player(b_booster),
-                                    a.to_moveless_player(booster),
-                                ));
+                        if a.available_boosters().contains(&booster) {
+                            if let Some(b_booster) = b.selected_booster {
+                                if WhichPlayer::PlayerB == chooser {
+                                    new_phase = Some(Phase::MoveChoosing(
+                                        b.to_moveless_player(b_booster),
+                                        a.to_moveless_player(booster),
+                                    ));
+                                } else {
+                                    new_phase = Some(Phase::MoveChoosing(
+                                        a.to_moveless_player(booster),
+                                        b.to_moveless_player(b_booster),
+                                    ));
+                                }
+                                Ok(())
                             } else {
-                                new_phase = Some(Phase::MoveChoosing(
-                                    a.to_moveless_player(booster),
-                                    b.to_moveless_player(b_booster),
-                                ));
+                                a.selected_booster = Some(booster);
+                                Ok(())
                             }
-                            Ok(())
                         } else {
-                            a.selected_booster = Some(booster);
+                            // Booster from wrong character.
+                            b.points += a.penalize(3);
                             Ok(())
                         }
                     } else {
