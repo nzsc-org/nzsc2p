@@ -23,7 +23,7 @@ pub enum Phase {
     GameOver(u8, u8),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum WhichPlayer {
     PlayerA,
     PlayerB,
@@ -74,11 +74,23 @@ impl NZSCTwoPlayerGame {
                                     b.character_streak.add(character);
                                     Ok(())
                                 } else {
-                                    new_phase = Some(Phase::BoosterChoosing(
-                                        a.to_boosterless_player(character),
-                                        b.to_boosterless_player(b_character),
-                                    ));
-                                    Err(())
+                                    let headstart = outcomes::get_headstart(character, b_character);
+
+                                    a.points += headstart.0;
+                                    b.points += headstart.1;
+
+                                    if WhichPlayer::PlayerB == chooser {
+                                        new_phase = Some(Phase::BoosterChoosing(
+                                            b.to_boosterless_player(b_character),
+                                            a.to_boosterless_player(character),
+                                        ));
+                                    } else {
+                                        new_phase = Some(Phase::BoosterChoosing(
+                                            a.to_boosterless_player(character),
+                                            b.to_boosterless_player(b_character),
+                                        ));
+                                    }
+                                    Ok(())
                                 }
                             } else {
                                 a.selected_character = Some(character);
@@ -110,10 +122,17 @@ impl NZSCTwoPlayerGame {
                 } else {
                     if let Ok(booster) = Booster::from_str(&choice[..]) {
                         if let Some(b_booster) = b.selected_booster {
-                            new_phase = Some(Phase::MoveChoosing(
-                                a.to_moveless_player(booster),
-                                b.to_moveless_player(b_booster),
-                            ));
+                            if WhichPlayer::PlayerB == chooser {
+                                new_phase = Some(Phase::MoveChoosing(
+                                    b.to_moveless_player(b_booster),
+                                    a.to_moveless_player(booster),
+                                ));
+                            } else {
+                                new_phase = Some(Phase::MoveChoosing(
+                                    a.to_moveless_player(booster),
+                                    b.to_moveless_player(b_booster),
+                                ));
+                            }
                             Ok(())
                         } else {
                             a.selected_booster = Some(booster);
