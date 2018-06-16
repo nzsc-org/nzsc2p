@@ -6,7 +6,11 @@ use super::players::{
 use nzsc_core::{
     characters::Character,
     boosters::Booster,
-    moves::Move,
+    moves::{
+        Move,
+        SINGLE_USE_MOVES,
+        DESTRUCTIVE_MOVES,
+    },
     outcomes,
 };
 use std::str::FromStr;
@@ -190,6 +194,13 @@ impl NZSCTwoPlayerGame {
                                 a.selected_move = None;
                                 b.selected_move = None;
 
+                                if SINGLE_USE_MOVES.contains(&a_move) || DESTRUCTIVE_MOVES.contains(&b_move) {
+                                    a.destroyed_moves.push(a_move);
+                                }
+                                if SINGLE_USE_MOVES.contains(&b_move) || DESTRUCTIVE_MOVES.contains(&a_move) {
+                                    b.destroyed_moves.push(b_move);
+                                }
+
                                 if a.points >= 5 || b.points >= 5 {
                                     if a.points == b.points {
                                         a.points = 4;
@@ -260,7 +271,7 @@ impl NZSCTwoPlayerGame {
                 }
             },
 
-            &mut Phase::GameOver(a_points, b_points) => {
+            &mut Phase::GameOver(_a_points, _b_points) => {
                 // You can't make a move after the game is over.
                 Err(())
             },
